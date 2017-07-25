@@ -11,7 +11,7 @@ Full support for multi-factor authentication (especially Duo)!
 
 ![OpenConnect Connected](https://github.com/ventz/openconnect-gui-menu-bar/blob/master/images/vpn-connected.png)
 
-![OpenConnect Disconnected](https://github.com/ventz/openconnect-gui-menu-bar/blob/master/images/vpn-connected.png)
+![OpenConnect Disconnected](https://github.com/ventz/openconnect-gui-menu-bar/blob/master/images/vpn-disconnected.png)
 
 # How to run it:
 
