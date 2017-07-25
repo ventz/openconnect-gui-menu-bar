@@ -9,9 +9,9 @@ An easy way to get OpenConnect VPN to have an OS X Menu Bar GUI for:
 
 Full support for multi-factor authentication (especially Duo)!
 
-![OpenConnect Connected](https://github.com/ventz/openconnect-gui-menu-bar/images/vpn-connected.png)
+![OpenConnect Connected](https://github.com/ventz/openconnect-gui-menu-bar/blob/master/images/vpn-connected.png)
 
-![OpenConnect Disconnected](https://github.com/ventz/openconnect-gui-menu-bar/images/vpn-disconnected.png)
+![OpenConnect Disconnected](https://github.com/ventz/openconnect-gui-menu-bar/blob/master/images/vpn-connected.png)
 
 # How to run it:
 
