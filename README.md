@@ -25,18 +25,21 @@ It will ask you to create (or select) a folder to use for your scripts.
 
 ## 2. Edit the "openconnect.sh" and follow the steps inside to customize:
 
-### Your sudo file with:
+This file is the "script" that interacts with BitBar. Place
+it in your bitbar scripts folder, and edit it/follow these steps:
+
+### First - Update your sudoers file with:
 ```
 osx-username ALL=(ALL) NOPASSWD: /usr/local/bin/openconnect
 osx-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
 ```
 
-### Your openconnect binary:
+### Second - Make sure your openconnect binary is here:
 ```
 VPN_EXECUTABLE=/usr/local/bin/openconnect
 ```
 
-### Your VPN domain and your username:
+### Third - add your VPN domain and VPN username:
 ```
 VPN_HOST="vpn.domain.tld"
 VPN_USERNAME="vpn_username@domain.tld#VPN_TUNNEL_OPTIONALLY"
