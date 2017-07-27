@@ -65,7 +65,7 @@ case "$1" in
 
         # The "push" is for Duo - to push to your phone. You could use "sms" or "phone"
         # For anything else (non-duo) - you would provide your token (see: stoken)
-        echo -e "${VPN_PASSWORD}\npush\n" | sudo "$VPN_EXECUTABLE" -u "$VPN_USERNAME" "$VPN_HOST" &> /dev/null &
+        echo -e "${VPN_PASSWORD}\npush\n" | sudo "$VPN_EXECUTABLE" -u "$VPN_USERNAME" -i "$VPN_INTERFACE" "$VPN_HOST" &> /dev/null &
 
         # Wait for connection so menu item refreshes instantly
         until eval "$VPN_CONNECTED"; do sleep 1; done
