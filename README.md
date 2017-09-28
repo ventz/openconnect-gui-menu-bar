@@ -58,5 +58,19 @@ f.) For "Password" enter your VPN AnyConnect password.
 That's it! Now you can use the GUI to connect and disconnect!
 (and if you are using Duo - get the 2nd factor push to your phone)
 
+
+# Problems Connecting?
+
+If you have another VPN (ex: OpenVPN), you might already have an
+'utun0' interface. Please check with '/sbin/ifconfig'. If that's the
+case, in step #2 above you need to add:
+
+```
+VPN_INTERFACE="utun1"
+```
+
+If you already have an utun0 and an utun1, then you need to
+change it to the next available, ex: utun2.
+
 # Help/Questions/Comments:
 For help or more info, feel free to contact me or open an issue here!

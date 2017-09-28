@@ -1,13 +1,16 @@
 #!/bin/bash
 # Credit for original concept and initial work to: Jesse Jarzynka
 
+# Updated by: Ventz Petkov (9-28-17)
+#    * fixed for Mac OS X High Sierra (10.13)
+
 # Updated by: Ventz Petkov (7-24-17)
 #    * fixed openconnect (did not work with new 2nd password prompt)
 #    * added ability to work with "Duo" 2-factor auth
 #    * changed icons
 
 # <bitbar.title>VPN Status</bitbar.title>
-# <bitbar.version>v1.0</bitbar.version>
+# <bitbar.version>v1.1</bitbar.version>
 # <bitbar.author>Ventz Petkov</bitbar.author>
 # <bitbar.author.github>ventz</bitbar.author.github>
 # <bitbar.desc>Connect/Disconnect OpenConnect + show status</bitbar.desc>
@@ -52,7 +55,7 @@ GET_VPN_PASSWORD="security find-generic-password -g -a $VPN_HOST 2>&1 >/dev/null
 VPN_INTERFACE="utun0"
 
 # Command to determine if VPN is connected or disconnected
-VPN_CONNECTED="/sbin/ifconfig | egrep -A1 $VPN_INTERFACE | grep inet"
+VPN_CONNECTED="/sbin/ifconfig $VPN_INTERFACE | grep inet"
 # Command to run to disconnect VPN
 VPN_DISCONNECT_CMD="sudo killall -2 openconnect"
 
