@@ -55,7 +55,7 @@ GET_VPN_PASSWORD="security find-generic-password -g -a $VPN_HOST 2>&1 >/dev/null
 VPN_INTERFACE="utun0"
 
 # Command to determine if VPN is connected or disconnected
-VPN_CONNECTED="/sbin/ifconfig $VPN_INTERFACE | grep inet"
+VPN_CONNECTED="/sbin/ifconfig | grep -A3 $VPN_INTERFACE | grep inet"
 # Command to run to disconnect VPN
 VPN_DISCONNECT_CMD="sudo killall -2 openconnect"
 
