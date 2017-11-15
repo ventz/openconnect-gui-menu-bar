@@ -1,6 +1,10 @@
 #!/bin/bash
 # Credit for original concept and initial work to: Jesse Jarzynka
 
+# Updated by: Ventz Petkov (11-15-17)
+#    * cleared up documentation
+#    * incremented 'VPN_INTERFACE' to 'utun99' to avoid collisions with other VPNs
+
 # Updated by: Ventz Petkov (9-28-17)
 #    * fixed for Mac OS X High Sierra (10.13)
 
@@ -52,7 +56,7 @@ GET_VPN_PASSWORD="security find-generic-password -g -a $VPN_HOST 2>&1 >/dev/null
 # END-OF-USER-SETTINGS #
 #########################################################
 
-VPN_INTERFACE="utun0"
+VPN_INTERFACE="utun99"
 
 # Command to determine if VPN is connected or disconnected
 VPN_CONNECTED="/sbin/ifconfig | grep -A3 $VPN_INTERFACE | grep inet"

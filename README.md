@@ -25,8 +25,12 @@ It will ask you to create (or select) a folder to use for your scripts.
 
 ## 2. Edit the "openconnect.sh" and follow the steps inside to customize:
 
+Start by just getting the file itself:
+https://raw.githubusercontent.com/ventz/openconnect-gui-menu-bar/master/openconnect.sh
+
 This file is the "script" that interacts with BitBar. Place
-it in your bitbar scripts folder, and edit it/follow these steps:
+it in your bitbar scripts folder (I have chosen:
+~/Documents/private/bitbar-plugins/), and edit it/follow these steps:
 
 ### First - Update your sudoers file with:
 ```
@@ -71,6 +75,8 @@ VPN_INTERFACE="utun1"
 
 If you already have an utun0 and an utun1, then you need to
 change it to the next available, ex: utun2.
+
+In order to make sure this doesn't happen - I've chosen 'utun99'
 
 # Help/Questions/Comments:
 For help or more info, feel free to contact me or open an issue here!
