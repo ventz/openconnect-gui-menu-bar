@@ -55,7 +55,7 @@ a.) Open "Keychain Access" and
 b.) Click on "login" keychain (top left corner)
 c.) Click on "Passwords" category (bottom left corner)
 d.) From the "File" menu, select -> "New Password Item..."
-e.) For "Keychain Item Name" and "Account Name" use the value for "VPN_HOST"
+e.) For "Keychain Item Name" and "Account Name" use the value for "VPN_HOST" and "VPN_USERNAME" respectively
 f.) For "Password" enter your VPN AnyConnect password.
 ```
 
