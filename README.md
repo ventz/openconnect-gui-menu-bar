@@ -43,10 +43,21 @@ osx-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
 VPN_EXECUTABLE=/usr/local/bin/openconnect
 ```
 
-### Third - add your VPN domain and VPN username:
+### Third - add your VPN domain and VPN username and set Auth for "push" or "pin"
 ```
 VPN_HOST="vpn.domain.tld"
 VPN_USERNAME="vpn_username@domain.tld#VPN_TUNNEL_OPTIONALLY"
+
+# Duo options include "push", "sms", or "phone"
+PUSH_OR_PIN="push"
+* or * 
+# To be prompted for TOTP input, use product name:
+PUSH_OR_PIN="Yubikey"
+or
+PUSH_OR_PIN="Google Authenticator"
+or
+PUSH_OR_PIN="Duo"
+
 ```
 
 ### Finally, create your KeyChain password (to store your VPN password securely):
