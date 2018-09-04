@@ -45,15 +45,15 @@ VPN_HOST="vpn.domain.tld"
 VPN_USERNAME="vpn_username@domain.tld#VPN_TUNNEL_OPTIONALLY"
 
 # 5.) Push 2FA (ex: Duo), or Pin/Token (ex: Yubikey, Google Authenticator, TOTP)
-#PUSH_OR_PIN="push"
-PUSH_OR_PIN="Yubikey"
+PUSH_OR_PIN="push"
+#PUSH_OR_PIN="Yubikey"
 # ---
 # * For Push (and other Duo specifics), options include:
 # "push", "sms", or "phone"
 # ---
 # * For Yubikey/Google Authenticator/other TOTP, specify any name for prompt:
 # "any-name-of-product-to-be-prompted-about"
-# ex: PUSH_OR_PIN="Yubikey", or PUSH_OR_PIN="Google Authenticator" or PUSH_OR_PIN="Duo"
+# PUSH_OR_PIN="Yubikey" | PUSH_OR_PIN="Google Authenticator" | PUSH_OR_PIN="Duo"
 # (essentially, anything _other_ than the "push", "sms", or "phone" options)
 # ---
 
@@ -93,7 +93,7 @@ function prompt_2fa_method() {
 		tell app "System Events"
 			text returned of (display dialog "Enter $1 token:" default answer "" buttons {"OK"} default button 1 with title "$(basename $0)")
 		end tell
-	EOF
+EOF
 	fi
 }
 
