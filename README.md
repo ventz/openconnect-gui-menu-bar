@@ -1,8 +1,8 @@
-### OpenConnect - OS X GUI Menu Bar for connecting/disconnecting
+### OpenConnect - OS X/Mac OS GUI Menu Bar for connecting/disconnecting
 
 # What is this?
 
-An easy way to get OpenConnect VPN to have an OS X Menu Bar GUI for:
+An easy way to get OpenConnect VPN to have an OS X/Mac OS Menu Bar GUI for:
 * quick connecting
 * quick disconnect
 * status changes (icon)
@@ -18,10 +18,13 @@ Full support for multi-factor authentication (especially Duo)!
 ## 1. Get the latest BitBar release:
 https://github.com/matryer/bitbar/releases
 
-BitBar provides an easy way to put "things" (for output and input) in your OS X Menu Bar.
+BitBar provides an easy way to put "things" (for output and input) in your OS X/Mac OS Menu Bar.
 
 Just unzip the release in your /Application folder and launch BitBar.
 It will ask you to create (or select) a folder to use for your scripts.
+
+Obviously make sure you have installed openconnect too :)
+`brew install openconnect`
 
 ## 2. Edit the "openconnect.sh" and follow the steps inside to customize:
 
@@ -30,13 +33,17 @@ https://raw.githubusercontent.com/ventz/openconnect-gui-menu-bar/master/openconn
 
 This file is the "script" that interacts with BitBar. Place
 it in your bitbar scripts folder (I have chosen:
-~/Documents/private/bitbar-plugins/), and edit it/follow these steps:
+~/Documents/bitbar-plugins/), and edit it/follow these steps:
 
 ### First - Update your sudoers file with:
+
+You can create a `/etc/sudoers.d/openconnect` file which contains:
 ```
-osx-username ALL=(ALL) NOPASSWD: /usr/local/bin/openconnect
-osx-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
+mac-username ALL=(ALL) NOPASSWD: /usr/local/bin/openconnect
+mac-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
 ```
+
+Please note that `mac-username` is not a literal, but the actually the 'whoami' username for OS X/Mac OS.
 
 ### Second - Make sure your openconnect binary is here:
 ```
@@ -66,7 +73,7 @@ a.) Open "Keychain Access" and
 b.) Click on "login" keychain (top left corner)
 c.) Click on "Passwords" category (bottom left corner)
 d.) From the "File" menu, select -> "New Password Item..."
-e.) For "Keychain Item Name" and "Account Name" use the value for "VPN_HOST" and "VPN_USERNAME" respectively
+e.) For "Keychain Item Name" and "Account Name" use the "VPN_HOST" and "VPN_USERNAME" values respectively from the "Third" step above.
 f.) For "Password" enter your VPN AnyConnect password.
 ```
 
