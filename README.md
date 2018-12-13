@@ -31,6 +31,8 @@ Obviously make sure you have installed openconnect too :)
 Start by just getting the file itself:
 https://raw.githubusercontent.com/ventz/openconnect-gui-menu-bar/master/openconnect.sh
 
+Make sure you make it executable: `chmod 755 openconnect.sh` once you download it.
+
 This file is the "script" that interacts with BitBar. Place
 it in your bitbar scripts folder (I have chosen:
 ~/Documents/bitbar-plugins/), and edit it/follow these steps:
