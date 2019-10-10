@@ -91,7 +91,7 @@ function prompt_2fa_method() {
 	else
 		osascript <<EOF
 		tell app "System Events"
-			text returned of (display dialog "Enter $1 token:" default answer "" buttons {"OK"} default button 1 with title "$(basename $0)")
+			text returned of (display dialog "Enter $1 token:" with hidden answer default answer "" buttons {"OK"} default button 1 with title "$(basename $0)")
 		end tell
 EOF
 	fi
