@@ -1,5 +1,9 @@
 #!/bin/bash
 # Credit for original concept and initial work to: Jesse Jarzynka
+#
+# Updated by: Ventz Petkov (7-25-23)
+#   * added useragent for AnyConnect (needed for recent deployments)
+#   * added "VPN_GROUP" option, which is replacing the phased out "#VPN_TUNNEL_OPTIONALLY" within the "VPN_USERNAME"
 
 # Updated by: Ventz Petkov (8-31-18)
 #   * merged feature for token/pin input (ex: Duo/Yubikey/Google Authenticator) contributed by Harry Hoffman <hhoffman@ip-solutions.net>
@@ -40,8 +44,11 @@ VPN_EXECUTABLE=/usr/local/bin/openconnect
 
 # 3.) Update your AnyConnect VPN host
 VPN_HOST="vpn.domain.tld"
+# NOTE: If you are using a VPN_GROUP (ex: domain.tld/group) -- use this, instead of "#VPN_TUNNEL" within VPN_USERNAME
+VPN_GROUP="VPN_GROUP_TUNNEL_OPTIONALLY"
 
 # 4.) Update your AnyConnect username + tunnel
+# NOTE: If you are NOT using the VPN_GROUP, set it to empty, and use "#VPN_TUNNEL" within the VPN_USERNAME
 VPN_USERNAME="vpn_username@domain.tld#VPN_TUNNEL_OPTIONALLY"
 
 # 5.) Push 2FA (ex: Duo), or Pin/Token (ex: Yubikey, Google Authenticator, TOTP)
@@ -106,7 +113,7 @@ case "$1" in
 
         # Connect based on your 2FA selection (see: $PUSH_OR_PIN for options)
         # For anything else (non-duo) - you would provide your token (see: stoken)
-        echo -e "${VPN_PASSWORD}\n$(prompt_2fa_method ${PUSH_OR_PIN})\n" | sudo "$VPN_EXECUTABLE" -u "$VPN_USERNAME" -i "$VPN_INTERFACE" "$VPN_HOST" &> /dev/null &
+        echo -e "${VPN_PASSWORD}\n$(prompt_2fa_method ${PUSH_OR_PIN})\n" | sudo "$VPN_EXECUTABLE" --useragent=AnyConnect -u "$VPN_USERNAME" -i "$VPN_INTERFACE" "$VPN_HOST/$VPN_GROUP" &> /dev/null &
 
         # Wait for connection so menu item refreshes instantly
         until eval "$VPN_CONNECTED"; do sleep 1; done

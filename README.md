@@ -55,6 +55,8 @@ VPN_EXECUTABLE=/usr/local/bin/openconnect
 ### Third - add your VPN domain and VPN username and set Auth for "push" or "pin"
 ```
 VPN_HOST="vpn.domain.tld"
+# NOTE: If you are using a VPN_GROUP (ex: domain.tld/group) -- use this, instead of "#VPN_TUNNEL" within VPN_USERNAME
+VPN_GROUP="VPN_GROUP_TUNNEL"
 VPN_USERNAME="vpn_username@domain.tld#VPN_TUNNEL_OPTIONALLY"
 
 # Duo options include "push", "sms", or "phone"
