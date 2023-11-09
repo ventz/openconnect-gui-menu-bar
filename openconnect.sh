@@ -1,6 +1,11 @@
 #!/bin/bash
 # Credit for original concept and initial work to: Jesse Jarzynka
 #
+# Updated by: Ventz Petkov (11-08-23)
+#   * Modified VPN_EXECUTABLE default path due to dir change within `brew` on M-series Macs (m1, m2, m3) to /opt/homebrew/
+#   * Modified sudoers to reflect new openconnect VPN_EXECUTABLE path
+#   * Cleaned up KeyChain instructions around KeyChain Item name vs Account Name
+#
 # Updated by: Ventz Petkov (7-25-23)
 #   * added useragent for AnyConnect (needed for recent deployments)
 #   * added "VPN_GROUP" option, which is replacing the phased out "#VPN_TUNNEL_OPTIONALLY" within the "VPN_USERNAME"
@@ -32,14 +37,15 @@
 # USER CHANGES #
 #########################################################
 
-# 1.) Updated your sudo config with (edit "osx-username" with your username):
-#osx-username ALL=(ALL) NOPASSWD: /usr/local/bin/openconnect
-#osx-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
+# 1.) Updated your sudo config with (edit "mac-username" with your username):
+# (NOTE: You can obtain the "mac-username" with "whoami" in a terminal)
+#mac-username ALL=(ALL) NOPASSWD: /opt/homebrew/bin/openconnect
+#mac-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
 
 
 # 2.) Make sure openconnect binary is located here:
 #     (If you don't have it installed: "brew install openconnect")
-VPN_EXECUTABLE=/usr/local/bin/openconnect
+VPN_EXECUTABLE=/opt/homebrew/bin/openconnect
 
 
 # 3.) Update your AnyConnect VPN host
@@ -69,8 +75,9 @@ PUSH_OR_PIN="push"
 #      b.) Click on "login" keychain (top left corner)
 #      c.) Click on "Passwords" category (bottom left corner)
 #      d.) From the "File" menu, select -> "New Password Item..."
-#      e.) For "Keychain Item Name" and "Account Name" use the value for "VPN_HOST" and "VPN_USERNAME" respectively
-#      f.) For "Password" enter your VPN AnyConnect password.
+#      e.) For "Keychain Item Name" "VPN_HOST" (ex: vpn.domain.tld)
+#      f.) For "Account Name" use the value for "VPN_USERNAME" (ex: email@domain.tld)
+#      g.) For "Password" enter your VPN AnyConnect password.
 
 # This will retrieve that password securely at run time when you connect, and feed it to openconnect
 # No storing passwords unenin plain text files! :)
