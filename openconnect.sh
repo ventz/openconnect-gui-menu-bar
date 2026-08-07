@@ -1,6 +1,22 @@
 #!/bin/bash
 # Credit for original concept and initial work to: Jesse Jarzynka
 #
+# Updated by: Ventz Petkov (8-7-26)
+#   * added "sso" auth mode for browser-based SAML/Okta/Azure AD deployments
+#     (see VPN_AUTH) -- auth happens entirely in the browser via --external-browser,
+#     with NO password or 2FA fed to openconnect
+#   * added clear_stale_route() -- openconnect pins the VPN gateway with a /32
+#     host route OUTSIDE the tunnel; if a session dies without a clean teardown
+#     that route is left behind bound to a stale source address, and every later
+#     connect fails instantly with "Can't assign requested address" before it
+#     ever reaches auth. Now cleared on both connect and disconnect.
+#   * replaced the unbounded "until connected" spin with a bounded wait
+#     (see CONNECT_TIMEOUT), so a stuck connect no longer hangs the plugin forever
+#   * openconnect output now goes to $LOG_FILE instead of /dev/null, plus a
+#     "View log" menu item -- a failed connect is now diagnosable
+#   * keychain lookup scoped by BOTH service and account, so a second item with
+#     the same label cannot shadow it; empty result now fails loudly
+#
 # Updated by: Ventz Petkov (11-08-23)
 #   * Modified VPN_EXECUTABLE default path due to dir change within `brew` on M-series Macs (m1, m2, m3) to /opt/homebrew/
 #   * Modified sudoers to reflect new openconnect VPN_EXECUTABLE path
@@ -41,6 +57,14 @@
 # (NOTE: You can obtain the "mac-username" with "whoami" in a terminal)
 #mac-username ALL=(ALL) NOPASSWD: /opt/homebrew/bin/openconnect
 #mac-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
+#mac-username ALL=(ALL) NOPASSWD: /sbin/route -n delete -host *
+#
+# NOTE: the third line is what lets the plugin clean up the stale VPN gateway
+# route (see clear_stale_route below). Without it, that cleanup is skipped and
+# logged -- it will NOT hang waiting for a password, but you will eventually hit
+# "Can't assign requested address" and have to clear the route by hand:
+#   sudo route -n delete -host <vpn-server-ip>
+# ALWAYS validate after editing sudoers:  sudo visudo -c
 
 
 # 2.) Make sure openconnect binary is located here:
@@ -57,7 +81,22 @@ VPN_GROUP="VPN_GROUP_TUNNEL_OPTIONALLY"
 # NOTE: If you are NOT using the VPN_GROUP, set it to empty, and use "#VPN_TUNNEL" within the VPN_USERNAME
 VPN_USERNAME="vpn_username@domain.tld#VPN_TUNNEL_OPTIONALLY"
 
-# 5.) Push 2FA (ex: Duo), or Pin/Token (ex: Yubikey, Google Authenticator, TOTP)
+# 5.) Authentication method for your VPN:
+#   "password" -> classic AnyConnect: keychain password + 2FA (see PUSH_OR_PIN below)
+#   "sso"      -> browser-based SSO (SAML / Okta / Azure AD / Ping / etc.)
+#
+# With "sso" there is NO password and NO 2FA prompt here -- openconnect hands the
+# whole exchange to your browser, and any MFA happens there. If your org has
+# migrated to SSO, the keychain entry and PUSH_OR_PIN below become unused.
+VPN_AUTH="password"
+
+# Only used when VPN_AUTH="sso" -- helper that opens the SSO URL in your browser.
+# Shipped alongside this script; see sso_browser.sh for why a helper is needed
+# (openconnect runs as root under sudo, and root must NOT launch your browser).
+EXTERNAL_BROWSER="$(dirname "$0")/sso_browser.sh"
+
+# 5b.) Push 2FA (ex: Duo), or Pin/Token (ex: Yubikey, Google Authenticator, TOTP)
+#      (VPN_AUTH="password" only -- ignored when VPN_AUTH="sso")
 PUSH_OR_PIN="push"
 #PUSH_OR_PIN="Yubikey"
 # ---
@@ -71,6 +110,7 @@ PUSH_OR_PIN="push"
 # ---
 
 # 6.) Create an encrypted password entry in your OS X Keychain:
+#     (VPN_AUTH="password" only -- skip this entirely when VPN_AUTH="sso")
 #      a.) Open "Keychain Access" and 
 #      b.) Click on "login" keychain (top left corner)
 #      c.) Click on "Passwords" category (bottom left corner)
@@ -81,7 +121,9 @@ PUSH_OR_PIN="push"
 
 # This will retrieve that password securely at run time when you connect, and feed it to openconnect
 # No storing passwords unenin plain text files! :)
-GET_VPN_PASSWORD="security find-generic-password -wl $VPN_HOST"
+# Scoped by BOTH service (-s) and account (-a) so a second keychain item sharing
+# the same label cannot silently shadow the right one.
+GET_VPN_PASSWORD="security find-generic-password -s $VPN_HOST -a $VPN_USERNAME -w"
 
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # END-OF-USER-SETTINGS #
@@ -89,10 +131,54 @@ GET_VPN_PASSWORD="security find-generic-password -wl $VPN_HOST"
 
 VPN_INTERFACE="utun99"
 
+# Give up rather than spin forever if the tunnel never comes up.
+CONNECT_TIMEOUT=60
+# openconnect's own output lands here instead of /dev/null, so a failed connect
+# is diagnosable after the fact ("View log" in the menu).
+LOG_FILE="/tmp/openconnect-xbar.log"
+
 # Command to determine if VPN is connected or disconnected
 VPN_CONNECTED="/sbin/ifconfig | grep -A3 $VPN_INTERFACE | grep inet"
 # Command to run to disconnect VPN
 VPN_DISCONNECT_CMD="sudo killall -2 openconnect"
+
+# openconnect pins the VPN gateway with a /32 host route that stays OUTSIDE the
+# tunnel (otherwise the tunnel's own default route would swallow the connection
+# to the gateway). When a session dies without a clean teardown -- killall -2,
+# laptop sleep, an address change on your LAN interface -- that route is left
+# behind bound to a stale source address. Every later connect then dies with
+#   Failed to connect to <ip>:443: Can't assign requested address
+# BEFORE it ever reaches authentication, so no password/SSO prompt ever appears
+# and the failure looks like a hang. Clear it first.
+function clear_stale_route() {
+	local host="$1" ip
+	for ip in $(dig +short "$host" | grep -E '^[0-9]+(\.[0-9]+){3}$'); do
+		if netstat -rn -f inet | grep -q "^${ip}[[:space:]]"; then
+			echo "clearing stale host route for $ip" >> "$LOG_FILE"
+			# -n (non-interactive): xbar runs this with terminal=false, so an
+			# unexpected sudo password prompt would hang the plugin invisibly.
+			# Fail loudly into the log instead. Needs the /sbin/route sudoers line.
+			if ! sudo -n /sbin/route -n delete -host "$ip" >> "$LOG_FILE" 2>&1; then
+				echo "ERROR: could not delete route for $ip -- add the /sbin/route NOPASSWD sudoers line" >> "$LOG_FILE"
+			fi
+		fi
+	done
+}
+
+# Wait for the tunnel so the menu item refreshes instantly -- but bounded, so a
+# stuck connect leaves the menu usable instead of hanging the plugin forever.
+function wait_for_connect() {
+	local waited=0
+	until eval "$VPN_CONNECTED" &> /dev/null; do
+		sleep 1
+		waited=$((waited + 1))
+		if [ "$waited" -ge "$CONNECT_TIMEOUT" ]; then
+			echo "timed out after ${CONNECT_TIMEOUT}s waiting for $VPN_INTERFACE" >> "$LOG_FILE"
+			return 1
+		fi
+	done
+	return 0
+}
 
 # GUI Prompt for your token/key (ex: Duo/Yubikey/Google Authenticator)
 function prompt_2fa_method() {		
@@ -114,21 +200,44 @@ EOF
 
 case "$1" in
     connect)
-        VPN_PASSWORD=$(eval "$GET_VPN_PASSWORD")
+        : > "$LOG_FILE"
+        clear_stale_route "$VPN_HOST"
         # VPN connection command, should eventually result in $VPN_CONNECTED,
         # may need to be modified for VPN clients other than openconnect
 
-        # Connect based on your 2FA selection (see: $PUSH_OR_PIN for options)
-        # For anything else (non-duo) - you would provide your token (see: stoken)
-        echo -e "${VPN_PASSWORD}\n$(prompt_2fa_method ${PUSH_OR_PIN})\n" | sudo "$VPN_EXECUTABLE" --useragent=AnyConnect -u "$VPN_USERNAME" -i "$VPN_INTERFACE" "$VPN_HOST/$VPN_GROUP" &> /dev/null &
+        if [ "$VPN_AUTH" == "sso" ]; then
+            # Browser-based SSO: openconnect hands the whole exchange to
+            # $EXTERNAL_BROWSER and any MFA happens there. stdin is closed
+            # deliberately -- leaving a pipe on stdin (the password form below)
+            # silently swallows openconnect's own prompts and makes a failed SSO
+            # look identical to a hang.
+            sudo "$VPN_EXECUTABLE" --useragent=AnyConnect --external-browser="$EXTERNAL_BROWSER" -u "$VPN_USERNAME" -i "$VPN_INTERFACE" "$VPN_HOST/$VPN_GROUP" < /dev/null >> "$LOG_FILE" 2>&1 &
 
-        # Wait for connection so menu item refreshes instantly
-        until eval "$VPN_CONNECTED"; do sleep 1; done
+            wait_for_connect
+        else
+            VPN_PASSWORD=$(eval "$GET_VPN_PASSWORD")
+            if [ -z "$VPN_PASSWORD" ]; then
+                # Fall through to the menu rather than exiting silently -- an
+                # empty password used to get piped straight into openconnect,
+                # which then failed for a reason that looked nothing like
+                # "missing keychain entry".
+                echo "ERROR: no keychain password for $VPN_HOST (account $VPN_USERNAME)" >> "$LOG_FILE"
+            else
+                # Connect based on your 2FA selection (see: $PUSH_OR_PIN for options)
+                # For anything else (non-duo) - you would provide your token (see: stoken)
+                echo -e "${VPN_PASSWORD}\n$(prompt_2fa_method ${PUSH_OR_PIN})\n" | sudo "$VPN_EXECUTABLE" --useragent=AnyConnect -u "$VPN_USERNAME" -i "$VPN_INTERFACE" "$VPN_HOST/$VPN_GROUP" >> "$LOG_FILE" 2>&1 &
+
+                wait_for_connect
+            fi
+        fi
         ;;
     disconnect)
         eval "$VPN_DISCONNECT_CMD"
         # Wait for disconnection so menu item refreshes instantly
         until [ -z "$(eval "$VPN_CONNECTED")" ]; do sleep 1; done
+        # Tear down the gateway host route openconnect left behind, so the NEXT
+        # connect isn't poisoned by it.
+        clear_stale_route "$VPN_HOST"
         ;;
 esac
 
@@ -144,6 +253,8 @@ else
     #echo "VPN 🔓"
     echo '---'
     echo "Connect VPN | bash='$0' param1=connect terminal=false refresh=true"
+    echo '---'
+    echo "View log | href=file://$LOG_FILE"
     # For debugging!
     #echo "Connect VPN | bash='$0' param1=connect terminal=true refresh=true"
     exit

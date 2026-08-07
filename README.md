@@ -41,11 +41,23 @@ it in your bitbar scripts folder (I have chosen:
 
 You can create a `/etc/sudoers.d/openconnect` file which contains:
 ```
-mac-username ALL=(ALL) NOPASSWD: /usr/local/bin/openconnect
+mac-username ALL=(ALL) NOPASSWD: /opt/homebrew/bin/openconnect
 mac-username ALL=(ALL) NOPASSWD: /usr/bin/killall -2 openconnect
+mac-username ALL=(ALL) NOPASSWD: /sbin/route -n delete -host *
 ```
 
 Please note that `mac-username` is not a literal, but the actually the 'whoami' username for OS X/Mac OS.
+
+The third line lets the plugin clean up the stale VPN gateway route automatically
+(see "Problems Connecting?" below). Without it that cleanup is skipped and logged
+— it will *not* hang waiting for a password, but you will eventually have to
+clear the route by hand.
+
+Always validate the file after editing it — a malformed sudoers file can lock you
+out of `sudo` entirely:
+```
+sudo visudo -c
+```
 
 ### Second - Make sure your openconnect binary is here:
 ```
@@ -71,7 +83,35 @@ PUSH_OR_PIN="Duo"
 
 ```
 
+### Using SSO (SAML / Okta / Azure AD / Ping) instead of a password?
+
+Many organizations have migrated their AnyConnect/ASA deployments to browser-based
+SSO. If yours has, set:
+```
+VPN_AUTH="sso"
+```
+
+With `VPN_AUTH="sso"` there is **no password and no 2FA prompt** in this script —
+openconnect hands the entire exchange to your browser, and any MFA (Duo push,
+number matching, etc.) happens there. The KeyChain step below and `PUSH_OR_PIN`
+both become unused.
+
+This uses `sso_browser.sh`, shipped alongside `openconnect.sh` — download it too
+and `chmod 755 sso_browser.sh`. Keep both files in the same folder, or point
+`EXTERNAL_BROWSER` at wherever you put it. Edit `SSO_BROWSER` inside it to pick
+your browser (defaults to `Google Chrome`; leave it empty for your system default).
+
+The helper exists for a specific reason: openconnect runs under `sudo`, so
+anything it spawns runs as **root**. Pointing `--external-browser` straight at a
+browser means root writes into *your* browser profile (corrupting it over time),
+and a root process isn't reliably attached to your GUI session — so the login
+window may never appear and the connect just looks like it hung. The helper drops
+back to the console user and uses `open -a`, which also hands the URL to your
+**already-running** browser with its default profile — the one holding your live
+SSO session cookies.
+
 ### Finally, create your KeyChain password (to store your VPN password securely):
+(Skip this entirely if you set `VPN_AUTH="sso"` above.)
 ```
 a.) Open "Keychain Access" and
 b.) Click on "login" keychain (top left corner)
@@ -86,6 +126,42 @@ That's it! Now you can use the GUI to connect and disconnect!
 
 
 # Problems Connecting?
+
+## "Can't assign requested address" / no prompt ever appears
+
+If the log shows:
+```
+Failed to connect to <vpn-server-ip>:443: Can't assign requested address
+```
+then a **stale VPN gateway route** is the culprit. openconnect pins the VPN
+server with a `/32` host route that deliberately stays *outside* the tunnel
+(otherwise the tunnel's own default route would swallow the connection back to
+the gateway). When a session dies without a clean teardown — `killall -2`, laptop
+sleep, a DHCP address change on your LAN interface — that route is left behind
+bound to a source address that no longer exists.
+
+Every later connect then fails **instantly**, at the TCP layer, *before*
+authentication. So no password prompt and no SSO browser window ever appears, and
+the whole thing looks like a hang rather than an error. Check for it with:
+```
+netstat -rn -f inet | grep <vpn-server-ip>
+```
+and clear it with:
+```
+sudo route -n delete -host <vpn-server-ip>
+```
+
+`openconnect.sh` now does this automatically on both connect and disconnect
+(`clear_stale_route`), provided you added the `/sbin/route` sudoers line above.
+
+## Connect seems to hang forever
+
+Older versions spun in an unbounded `until connected` loop with all output sent to
+`/dev/null`, so any failure hung the plugin silently. Connects are now bounded by
+`CONNECT_TIMEOUT` (default 60s) and openconnect's output goes to
+`/tmp/openconnect-xbar.log` — reachable from the **View log** menu item.
+
+## utun interface collisions
 
 If you have another VPN (ex: OpenVPN), you might already have an
 'utun0' interface. Please check with '/sbin/ifconfig'. If that's the
