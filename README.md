@@ -15,13 +15,31 @@ Full support for multi-factor authentication (especially Duo)!
 
 # How to run it:
 
-## 1. Get the latest BitBar release:
-https://github.com/matryer/bitbar/releases
+## 1. Get the latest SwiftBar release:
+https://github.com/swiftbar/SwiftBar/releases
 
-BitBar provides an easy way to put "things" (for output and input) in your OS X/Mac OS Menu Bar.
+Or with Homebrew:
+```
+brew install swiftbar
+```
 
-Just unzip the release in your /Application folder and launch BitBar.
-It will ask you to create (or select) a folder to use for your scripts.
+SwiftBar provides an easy way to put "things" (for output and input) in your OS X/Mac OS Menu Bar.
+It is a drop-in replacement for the older BitBar/xbar — it runs those plugins unchanged —
+with more features, better support, and much better optimization/resource usage.
+(This plugin still works under BitBar/xbar; a few SwiftBar-only niceties are noted below.)
+
+Launch SwiftBar and it will ask you to create (or select) a folder to use for your scripts.
+**You pick the directory** — it can be anywhere you like (`~/Documents/menubar-plugins/`,
+a git repo, iCloud Drive, whatever), and you can change it later under
+`SwiftBar → Preferences → Plugin Folder`. Handy if you want to keep your plugins
+in version control instead of a hidden Application Support folder.
+
+Two things to know about that folder:
+* SwiftBar treats **every** file in it as a plugin — it will make files executable and
+  run them. Keep notes/READMEs out of it, or list them in a `.swiftbarignore` file.
+* The refresh interval comes from the filename (`name.10m.sh`). This plugin is fine
+  without one, because `<swiftbar.refreshOnOpen>` re-checks the VPN state whenever you
+  open the menu.
 
 Obviously make sure you have installed openconnect too :)
 `brew install openconnect`
@@ -33,9 +51,9 @@ https://raw.githubusercontent.com/ventz/openconnect-gui-menu-bar/master/openconn
 
 Make sure you make it executable: `chmod 755 openconnect.sh` once you download it.
 
-This file is the "script" that interacts with BitBar. Place
-it in your bitbar scripts folder (I have chosen:
-~/Documents/bitbar-plugins/), and edit it/follow these steps:
+This file is the "script" that interacts with SwiftBar. Place it in the plugin
+folder you chose in step 1 (mine is `~/Documents/menubar-plugins/`), and edit
+it/follow these steps:
 
 ### First - Update your sudoers file with:
 
@@ -159,7 +177,7 @@ sudo route -n delete -host <vpn-server-ip>
 Older versions spun in an unbounded `until connected` loop with all output sent to
 `/dev/null`, so any failure hung the plugin silently. Connects are now bounded by
 `CONNECT_TIMEOUT` (default 60s) and openconnect's output goes to
-`/tmp/openconnect-xbar.log` — reachable from the **View log** menu item.
+`/tmp/openconnect-menubar.log` — reachable from the **View log** menu item.
 
 ## utun interface collisions
 

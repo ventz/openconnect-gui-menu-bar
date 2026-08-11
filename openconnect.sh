@@ -1,6 +1,20 @@
 #!/bin/bash
 # Credit for original concept and initial work to: Jesse Jarzynka
 #
+# Updated by: Ventz Petkov (8-11-26)
+#   * MIGRATED TO SwiftBar (https://github.com/swiftbar/SwiftBar) -- a drop-in
+#     replacement for BitBar/xbar with more features, better support, and far
+#     better optimization/resource usage. Existing plugins run unchanged.
+#   * $0 is not dependable once SwiftBar wraps the plugin in bash, so the menu
+#     items now re-invoke $SWIFTBAR_PLUGIN_PATH (falling back to $0 on xbar)
+#   * connect/disconnect items are colored with SwiftBar "light,dark" color
+#     pairs -- a bare "green"/"red" washes out on the light translucent menu
+#   * <swiftbar.refreshOnOpen> re-checks the tunnel every time you open the
+#     menu; this plugin has no refresh interval in its filename, so previously
+#     the status only updated when you clicked something
+#   * LOG_FILE renamed to /tmp/openconnect-menubar.log (was -xbar.log)
+#   * metadata switched from <bitbar.*> to the <xbar.*> tags SwiftBar reads
+#
 # Updated by: Ventz Petkov (8-7-26)
 #   * added "sso" auth mode for browser-based SAML/Okta/Azure AD deployments
 #     (see VPN_AUTH) -- auth happens entirely in the browser via --external-browser,
@@ -42,12 +56,17 @@
 #   * added ability to work with "Duo" 2-factor auth
 #   * changed icons
 
-# <bitbar.title>VPN Status</bitbar.title>
-# <bitbar.version>v1.1</bitbar.version>
-# <bitbar.author>Ventz Petkov</bitbar.author>
-# <bitbar.author.github>ventz</bitbar.author.github>
-# <bitbar.desc>Connect/Disconnect OpenConnect + show status</bitbar.desc>
-# <bitbar.image></bitbar.image>
+# <xbar.title>VPN Status</xbar.title>
+# <xbar.version>v2.0</xbar.version>
+# <xbar.author>Ventz Petkov</xbar.author>
+# <xbar.author.github>ventz</xbar.author.github>
+# <xbar.desc>Connect/Disconnect OpenConnect + show status</xbar.desc>
+# <xbar.image></xbar.image>
+#
+# SwiftBar-only: re-check the tunnel state each time the menu is opened. This
+# plugin has no refresh interval in its filename, so without it the status is
+# only as fresh as your last click. (Ignored by xbar/BitBar.)
+# <swiftbar.refreshOnOpen>true</swiftbar.refreshOnOpen>
 
 #########################################################
 # USER CHANGES #
@@ -135,7 +154,20 @@ VPN_INTERFACE="utun99"
 CONNECT_TIMEOUT=60
 # openconnect's own output lands here instead of /dev/null, so a failed connect
 # is diagnosable after the fact ("View log" in the menu).
-LOG_FILE="/tmp/openconnect-xbar.log"
+LOG_FILE="/tmp/openconnect-menubar.log"
+
+# SwiftBar exports the running plugin's own path. $0 is not dependable, because
+# SwiftBar runs plugins through bash by default (<swiftbar.runInBash>), and the
+# menu items below re-invoke THIS file with an argument -- so the path has to be
+# absolute. Falls back to $0 under xbar/BitBar.
+SELF="${SWIFTBAR_PLUGIN_PATH:-$0}"
+
+# Menu item colors. SwiftBar accepts a "light_color,dark_color" pair and picks
+# the right one for the current system appearance. A bare "green"/"red" is the
+# dark-mode tuned value and washes out on the light translucent menu.
+# (xbar/BitBar don't understand the pair -- drop the second half if you use one.)
+CONNECT_COLOR="#0b7a2f,#30d158"
+DISCONNECT_COLOR="#a6252a,#ff453a"
 
 # Command to determine if VPN is connected or disconnected
 VPN_CONNECTED="/sbin/ifconfig | grep -A3 $VPN_INTERFACE | grep inet"
@@ -155,7 +187,7 @@ function clear_stale_route() {
 	for ip in $(dig +short "$host" | grep -E '^[0-9]+(\.[0-9]+){3}$'); do
 		if netstat -rn -f inet | grep -q "^${ip}[[:space:]]"; then
 			echo "clearing stale host route for $ip" >> "$LOG_FILE"
-			# -n (non-interactive): xbar runs this with terminal=false, so an
+			# -n (non-interactive): SwiftBar runs this with terminal=false, so an
 			# unexpected sudo password prompt would hang the plugin invisibly.
 			# Fail loudly into the log instead. Needs the /sbin/route sudoers line.
 			if ! sudo -n /sbin/route -n delete -host "$ip" >> "$LOG_FILE" 2>&1; then
@@ -245,17 +277,19 @@ esac
 if [ -n "$(eval "$VPN_CONNECTED")" ]; then
     echo "VPN 🔒"
     echo '---'
-    echo "Disconnect VPN | bash='$0' param1=disconnect terminal=false refresh=true"
+    echo "Disconnect VPN | color=$DISCONNECT_COLOR bash='$SELF' param1=disconnect terminal=false refresh=true"
+    echo '---'
+    echo "View log | href=file://$LOG_FILE"
     exit
 else
     echo "VPN ❌"
     # Alternative icon -> but too similar to "connected"
     #echo "VPN 🔓"
     echo '---'
-    echo "Connect VPN | bash='$0' param1=connect terminal=false refresh=true"
+    echo "Connect VPN | color=$CONNECT_COLOR bash='$SELF' param1=connect terminal=false refresh=true"
     echo '---'
     echo "View log | href=file://$LOG_FILE"
     # For debugging!
-    #echo "Connect VPN | bash='$0' param1=connect terminal=true refresh=true"
+    #echo "Connect VPN | bash='$SELF' param1=connect terminal=true refresh=true"
     exit
 fi
