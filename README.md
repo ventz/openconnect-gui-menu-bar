@@ -1,5 +1,16 @@
 ### OpenConnect - OS X/Mac OS GUI Menu Bar for connecting/disconnecting
 
+<p><strong>⭐ If this is useful to you, please <a href="https://github.com/ventz/openconnect-gui-menu-bar">star the repo</a>.</strong></p>
+<a href="https://github.com/ventz/openconnect-gui-menu-bar/stargazers"><img src="https://img.shields.io/github/stars/ventz/openconnect-gui-menu-bar?style=social" alt="GitHub stars"></a>
+
+> **Want a full Mac app instead of a menu bar script?** Try
+> **[Wombat](https://wombat.vpetkov.net)** ([source](https://github.com/ventz/wombat-wireguard-mac-app)):
+> a native, free and open-source client for **Cisco AnyConnect** (built on OpenConnect) and
+> **WireGuard** in one app. It signs in with password, Duo, single sign-on (Okta, Entra ID and
+> other SAML providers, in your own browser) or a keychain certificate, lives in the menu bar,
+> and needs no Homebrew `openconnect`, no `sudo` and no scripts. Install with
+> `brew install --cask ventz/tap/wombat-wireguard`.
+
 # What is this?
 
 An easy way to get OpenConnect VPN to have an OS X/Mac OS Menu Bar GUI for:
